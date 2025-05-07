@@ -1,0 +1,316 @@
+import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { BookOpen } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Login schema
+const loginSchema = z.object({
+  email: z.string().email({ message: "Email inválido" }),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
+});
+
+// Register schema
+const registerSchema = z.object({
+  nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
+  email: z.string().email({ message: "Email inválido" }),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"]
+});
+
+export default function AuthPage() {
+  const [location, navigate] = useLocation();
+  const { user, loginMutation, registerMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  
+  // Parse tab from URL 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab === "register") {
+      setActiveTab("register");
+    }
+  }, []);
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+  
+  // Login form
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
+  
+  // Register form
+  const registerForm = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      nombre: "",
+      email: "",
+      password: "",
+      confirmPassword: ""
+    }
+  });
+  
+  // Submit handlers
+  const onLoginSubmit = (data: z.infer<typeof loginSchema>) => {
+    loginMutation.mutate(data);
+  };
+  
+  const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
+    registerMutation.mutate({
+      nombre: data.nombre,
+      email: data.email,
+      password: data.password,
+      confirmPassword: data.confirmPassword
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
+          {/* Left Column - Auth Forms */}
+          <div className="w-full lg:w-1/2">
+            <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
+                <TabsTrigger value="register">Registrarse</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Iniciar sesión</CardTitle>
+                    <CardDescription>
+                      Introduce tus credenciales para acceder a tu cuenta
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="tu@email.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contraseña</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={loginMutation.isPending}
+                        >
+                          {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar sesión"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                  <CardFooter className="flex flex-col space-y-4">
+                    <div className="text-sm text-center text-gray-500">
+                      ¿No tienes una cuenta?{" "}
+                      <button 
+                        type="button" 
+                        className="text-primary hover:underline"
+                        onClick={() => setActiveTab("register")}
+                      >
+                        Regístrate
+                      </button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="register">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Crear cuenta</CardTitle>
+                    <CardDescription>
+                      Completa el formulario para crear una nueva cuenta
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...registerForm}>
+                      <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="nombre"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nombre</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ingresa tu nombre" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="tu@email.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contraseña</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirmar contraseña</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="••••••••" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending ? "Registrando..." : "Crear cuenta"}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                  <CardFooter className="flex flex-col space-y-4">
+                    <div className="text-sm text-center text-gray-500">
+                      ¿Ya tienes una cuenta?{" "}
+                      <button 
+                        type="button" 
+                        className="text-primary hover:underline"
+                        onClick={() => setActiveTab("login")}
+                      >
+                        Inicia sesión
+                      </button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+          
+          {/* Right Column - Hero Section */}
+          <div className="w-full lg:w-1/2 bg-primary rounded-lg p-8 text-white">
+            <div className="flex items-center mb-8">
+              <BookOpen className="h-10 w-10 mr-2" />
+              <h2 className="text-2xl font-serif font-bold">Booksy</h2>
+            </div>
+            
+            <h1 className="text-3xl font-serif font-bold mb-4">
+              Bienvenido a tu biblioteca virtual
+            </h1>
+            
+            <p className="text-lg mb-6 text-white/80">
+              Accede a una gran colección de libros, haz préstamos, califica y comenta tus lecturas favoritas.
+            </p>
+            
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="bg-white/10 p-2 rounded-full mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M12 6v6l4 2"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Préstamos rápidos</h3>
+                  <p className="text-white/80">Solicita préstamos de libros con un simple clic.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="bg-white/10 p-2 rounded-full mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Gran catálogo</h3>
+                  <p className="text-white/80">Explora una amplia variedad de géneros literarios.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="bg-white/10 p-2 rounded-full mr-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Califica y comenta</h3>
+                  <p className="text-white/80">Comparte tus opiniones sobre los libros que lees.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
