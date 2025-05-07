@@ -1,0 +1,95 @@
+Quiero una pagina web llamada 
+"booksy", la pagina es de libros, tiene que:
+
+- debe estar SOLO en español
+- La pagina web debe ser publica PERO no debe dejar hacer prestamo, comentar, califica libro hasta que se registre el usuario 
+- tener login y registrar nuevo usuario, esta parte tiene que diferenciarse entre el rol admin y el rol de usuario,
+- Los libros se pueden comentar (se debe permitir 1 solo comentario por libro) Esto es opcional para el usuario
+- El libro debe tener una opcion (estrellas) para calificarlo y que se haga un promedio. Esto es opcional para el usuario
+- tener un apartado donde salgan las categorias de los libros
+- tiene que haber un boton donde se haga el prestamo del libro y de ahi que haya una configuracion para poner dias (maximo 90) en caso de que no se configure, entonces que se asigne automaticamente. Al pasar los 90 dias este debe volver a poner el libro en stock es decir, disponible 
+- debe tener opcion de ver perfil donde se encuentren los libros que ya haya tenido como prestamo (reportes o historicos) y los que tenga asignados
+- tiene que tener un apartado donde aparezcan los destacados, los mas romanticos...
+- Si un usuario quiere devolver el libro, tiene que haber un boton para ejecutar esta accion y el libro queda en disponible 
+- el usuario administrador debe poder hacer todas las acciones de CRUD y debe ver cuales son los usuarios que estan registrados, activos e inactivos y los prestamos del momento
+- Tienen que decir cuántos libros hay disponibles, son máximo 50 libros disponibles por cada libro y a medida que se haga un préstamo este debe descontarse automáticamente (igual que cuando un usuario lo devuelva se debe sumar) en caso de que no haya disponibilidad entonces que aparezca un mensaje
+
+Las tablas que tenemos son: 
+
+Tabla: roles
+Id INT
+nombre varchar
+
+tabla :usuarios:
+id int
+nombre VARCHAR
+email VARCHAR
+password_hash TEXT
+role_id INT (FK)
+created_at TIMESTAMP
+
+ Tabla: administradores
+id  int(PK)
+user_id INT (FK)
+is_superadmin BOOLEAN
+
+Tabla: libros
+id int (PK)
+titulo VARCHAR
+autor VARCHAR
+published_year INT
+description varchar
+created_at TIMESTAMP
+
+ Tabla: stock
+id int (PK)
+book_id INT (FK)
+total_copies INT
+available_copies INT
+
+Tabla: historico_stock
+id int (PK)
+book_id INT (FK)
+change_type VARCHAR
+quantity_changed INT
+timestamp TIMESTAMP
+admin_id INT (FK)
+
+ Tabla: comentarios
+id int (PK)
+book_id INT (FK)
+user_id INT (FK)
+content TEXT
+rating INT
+created_at TIMESTAMP
+
+Tabla: reportes
+id int (PK)
+user_id INT (FK)
+book_id INT (FK)
+comment_id INT (FK)
+description TEXT
+created_at TIMESTAMP
+
+Tabla: loans (préstamos)
+id int (PK)
+user_id INT (FK)
+book_id INT (FK)
+start_date DATE
+due_date DATE
+status VARCHAR
+
+ Tabla: logs
+id int (PK)
+loan_id INT (FK)
+event_type VARCHAR
+timestamp TIMESTAMP
+
+
+
+
+
+
+
+
+
