@@ -11,6 +11,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Login schema
 const loginSchema = z.object({
@@ -18,15 +23,38 @@ const loginSchema = z.object({
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
 });
 
+// Función para calcular la edad
+function calculateAge(birthDate: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
 // Register schema
 const registerSchema = z.object({
   nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
-  confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
+  confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  birthDate: z.date({
+    required_error: "La fecha de nacimiento es requerida",
+    invalid_type_error: "La fecha de nacimiento debe ser una fecha válida"
+  })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"]
+}).refine((data) => {
+  const age = calculateAge(data.birthDate);
+  return age >= 5;
+}, {
+  message: "Debes tener al menos 5 años para registrarte",
+  path: ["birthDate"]
 });
 
 export default function AuthPage() {
@@ -66,7 +94,8 @@ export default function AuthPage() {
       nombre: "",
       email: "",
       password: "",
-      confirmPassword: ""
+      confirmPassword: "",
+      birthDate: new Date(2000, 0, 1) // Default to January 1, 2000
     }
   });
   
@@ -76,11 +105,15 @@ export default function AuthPage() {
   };
   
   const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
+    // Formatear la fecha como string ISO para enviar al servidor
+    const formattedBirthDate = data.birthDate.toISOString().split('T')[0];
+    
     registerMutation.mutate({
       nombre: data.nombre,
       email: data.email,
       password: data.password,
-      confirmPassword: data.confirmPassword
+      confirmPassword: data.confirmPassword,
+      birthDate: formattedBirthDate
     });
   };
 
@@ -194,6 +227,48 @@ export default function AuthPage() {
                               <FormControl>
                                 <Input placeholder="tu@email.com" {...field} />
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="birthDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>Fecha de nacimiento</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "PPP", { locale: es })
+                                      ) : (
+                                        <span>Selecciona una fecha</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                      date > new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                               <FormMessage />
                             </FormItem>
                           )}
