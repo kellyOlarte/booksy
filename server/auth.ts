@@ -88,6 +88,7 @@ export function setupAuth(app: Express) {
         email: validatedData.email,
         password_hash: hashedPassword,
         role_id: 1, // Default role (usuario normal)
+        birth_date: validatedData.birthDate,
       });
 
       req.login(user, (err) => {
