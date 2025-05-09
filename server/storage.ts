@@ -65,6 +65,424 @@ export interface IStorage {
   getAllActiveLoans(): Promise<LoanWithBookInfo[]>;
 }
 
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq, and, sql, desc, asc, or, isNull, gt, lt } from "drizzle-orm";
+
+const PostgresSessionStore = connectPg(session);
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      createTableIfMissing: true,
+      conObject: {
+        connectionString: process.env.DATABASE_URL
+      }
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<Usuario | undefined> {
+    const [user] = await db.select().from(usuarios).where(eq(usuarios.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<Usuario | undefined> {
+    const [user] = await db.select().from(usuarios).where(eq(usuarios.email, email));
+    return user;
+  }
+
+  async createUser(userData: InsertUsuario): Promise<Usuario> {
+    const [user] = await db.insert(usuarios).values(userData).returning();
+    return user;
+  }
+
+  async getAllUsers(): Promise<Usuario[]> {
+    return await db.select().from(usuarios);
+  }
+
+  async updateUserStatus(id: number, activo: boolean): Promise<Usuario | undefined> {
+    // En este caso, activo/inactivo podría manejarse con un campo adicional
+    // Para esta implementación, simplemente devolvemos el usuario actualizado
+    const [user] = await db.select().from(usuarios).where(eq(usuarios.id, id));
+    return user;
+  }
+
+  async isUserAdmin(userId: number): Promise<boolean> {
+    const [user] = await db.select().from(usuarios).where(eq(usuarios.id, userId));
+    if (!user) return false;
+    
+    // Verificar si tiene rol de administrador (role_id = 2)
+    if (user.role_id === 2) return true;
+    
+    // Verificar si está en la tabla de administradores
+    const [admin] = await db.select().from(administradores).where(eq(administradores.user_id, userId));
+    return !!admin;
+  }
+
+  // Book methods
+  async getAllLibros(categoria?: string, searchTerm?: string): Promise<LibroWithRating[]> {
+    let query = db.select().from(libros);
+    
+    // Filtrar por categoría si se especifica
+    if (categoria && categoria !== "todas") {
+      query = query.where(eq(libros.categoria, categoria));
+    }
+    
+    // Filtrar por término de búsqueda si se especifica
+    if (searchTerm) {
+      const term = `%${searchTerm.toLowerCase()}%`;
+      query = query.where(
+        or(
+          sql`lower(${libros.titulo}) like ${term}`,
+          sql`lower(${libros.autor}) like ${term}`
+        )
+      );
+    }
+    
+    const books = await query;
+    
+    // Obtener información de stock y calificaciones
+    const booksWithInfo = await Promise.all(books.map(book => this._addStockAndRatingToBook(book)));
+    
+    return booksWithInfo;
+  }
+
+  async getLibroById(id: number): Promise<LibroWithRating | undefined> {
+    const [book] = await db.select().from(libros).where(eq(libros.id, id));
+    if (!book) return undefined;
+    
+    return await this._addStockAndRatingToBook(book);
+  }
+
+  async getLibrosDestacados(): Promise<LibroWithRating[]> {
+    // Obtener todos los libros y ordenarlos por calificación
+    const books = await db.select().from(libros);
+    const booksWithRating = await Promise.all(books.map(book => this._addStockAndRatingToBook(book)));
+    
+    // Ordenar por calificación y devolver los 5 primeros
+    return booksWithRating
+      .sort((a, b) => b.averageRating - a.averageRating)
+      .slice(0, 5);
+  }
+
+  async getAllCategorias(): Promise<{categoria: string, count: number}[]> {
+    const result = await db.execute<{categoria: string, count: number}>(
+      sql`SELECT categoria, COUNT(*) as count FROM ${libros} GROUP BY categoria ORDER BY count DESC`
+    );
+    
+    return result.rows;
+  }
+
+  async createLibro(libroData: InsertLibro): Promise<Libro> {
+    const [libro] = await db.insert(libros).values(libroData).returning();
+    
+    // Crear stock por defecto
+    await db.insert(stock).values({
+      book_id: libro.id,
+      total_copies: 50,
+      available_copies: 50
+    });
+    
+    return libro;
+  }
+
+  async updateLibro(id: number, libroData: InsertLibro): Promise<Libro | undefined> {
+    const [libro] = await db
+      .update(libros)
+      .set(libroData)
+      .where(eq(libros.id, id))
+      .returning();
+    
+    return libro;
+  }
+
+  async deleteLibro(id: number): Promise<boolean> {
+    await db.delete(libros).where(eq(libros.id, id));
+    return true;
+  }
+
+  async updateStockLibro(id: number, totalCopies: number, availableCopies: number, adminId: number): Promise<LibroWithStock | undefined> {
+    // Actualizar el stock
+    const [stockData] = await db
+      .update(stock)
+      .set({
+        total_copies: totalCopies,
+        available_copies: availableCopies
+      })
+      .where(eq(stock.book_id, id))
+      .returning();
+    
+    if (!stockData) {
+      // Si no existe, crearlo
+      await db.insert(stock).values({
+        book_id: id,
+        total_copies: totalCopies,
+        available_copies: availableCopies
+      });
+    }
+    
+    // Registrar en historial
+    await db.insert(historico_stock).values({
+      book_id: id,
+      change_type: "stock_update",
+      quantity_changed: totalCopies,
+      admin_id: adminId
+    });
+    
+    // Obtener el libro con la información de stock
+    const book = await this.getLibroById(id);
+    if (!book) return undefined;
+    
+    return {
+      ...book,
+      totalCopies,
+      availableCopies,
+      averageRating: 0,
+      commentCount: 0
+    };
+  }
+
+  // Comment methods
+  async getComentariosByLibroId(libroId: number): Promise<ComentarioWithUser[]> {
+    const comments = await db
+      .select({
+        comentario: comentarios,
+        usuario: {
+          nombre: usuarios.nombre
+        }
+      })
+      .from(comentarios)
+      .innerJoin(usuarios, eq(comentarios.user_id, usuarios.id))
+      .where(eq(comentarios.book_id, libroId));
+    
+    return comments.map(row => ({
+      ...row.comentario,
+      usuario: row.usuario
+    }));
+  }
+
+  async getUserComentarioForLibro(userId: number, libroId: number): Promise<Comentario | undefined> {
+    const [comment] = await db
+      .select()
+      .from(comentarios)
+      .where(
+        and(
+          eq(comentarios.user_id, userId),
+          eq(comentarios.book_id, libroId)
+        )
+      );
+    
+    return comment;
+  }
+
+  async createComentario(comentarioData: InsertComentario): Promise<Comentario> {
+    const [comentario] = await db
+      .insert(comentarios)
+      .values(comentarioData)
+      .returning();
+    
+    return comentario;
+  }
+
+  // Loan methods
+  async getLoansForUser(userId: number): Promise<LoanWithBookInfo[]> {
+    const resultado = await db
+      .select({
+        loan: loans,
+        libro: {
+          id: libros.id,
+          titulo: libros.titulo,
+          autor: libros.autor,
+          imagen_url: libros.imagen_url
+        }
+      })
+      .from(loans)
+      .innerJoin(libros, eq(loans.book_id, libros.id))
+      .where(
+        and(
+          eq(loans.user_id, userId),
+          eq(loans.status, "prestado")
+        )
+      );
+    
+    return resultado.map(row => ({
+      ...row.loan,
+      libro: row.libro
+    }));
+  }
+
+  async getLoanHistoryForUser(userId: number): Promise<LoanWithBookInfo[]> {
+    const resultado = await db
+      .select({
+        loan: loans,
+        libro: {
+          id: libros.id,
+          titulo: libros.titulo,
+          autor: libros.autor,
+          imagen_url: libros.imagen_url
+        }
+      })
+      .from(loans)
+      .innerJoin(libros, eq(loans.book_id, libros.id))
+      .where(
+        and(
+          eq(loans.user_id, userId),
+          eq(loans.status, "devuelto")
+        )
+      );
+    
+    return resultado.map(row => ({
+      ...row.loan,
+      libro: row.libro
+    }));
+  }
+
+  async getActiveLoanForBookAndUser(bookId: number, userId: number): Promise<Loan | undefined> {
+    const [loan] = await db
+      .select()
+      .from(loans)
+      .where(
+        and(
+          eq(loans.book_id, bookId),
+          eq(loans.user_id, userId),
+          eq(loans.status, "prestado")
+        )
+      );
+    
+    return loan;
+  }
+
+  async getLoanById(id: number): Promise<Loan | undefined> {
+    const [loan] = await db
+      .select()
+      .from(loans)
+      .where(eq(loans.id, id));
+    
+    return loan;
+  }
+
+  async createLoan(loanData: InsertLoan): Promise<Loan> {
+    // Crear el préstamo
+    const [loan] = await db
+      .insert(loans)
+      .values(loanData)
+      .returning();
+    
+    // Actualizar el stock
+    const [stockItem] = await db
+      .select()
+      .from(stock)
+      .where(eq(stock.book_id, loanData.book_id));
+    
+    if (stockItem) {
+      await db
+        .update(stock)
+        .set({
+          available_copies: stockItem.available_copies - 1
+        })
+        .where(eq(stock.book_id, loanData.book_id));
+    }
+    
+    // Registrar el evento
+    await db.insert(logs).values({
+      loan_id: loan.id,
+      event_type: "prestamo_creado"
+    });
+    
+    return loan;
+  }
+
+  async returnLoan(id: number): Promise<Loan> {
+    // Actualizar el préstamo
+    const [loan] = await db
+      .update(loans)
+      .set({
+        status: "devuelto"
+      })
+      .where(eq(loans.id, id))
+      .returning();
+    
+    // Actualizar el stock
+    const [stockItem] = await db
+      .select()
+      .from(stock)
+      .where(eq(stock.book_id, loan.book_id));
+    
+    if (stockItem) {
+      await db
+        .update(stock)
+        .set({
+          available_copies: stockItem.available_copies + 1
+        })
+        .where(eq(stock.book_id, loan.book_id));
+    }
+    
+    // Registrar el evento
+    await db.insert(logs).values({
+      loan_id: loan.id,
+      event_type: "prestamo_devuelto"
+    });
+    
+    return loan;
+  }
+
+  async getAllActiveLoans(): Promise<LoanWithBookInfo[]> {
+    const resultado = await db
+      .select({
+        loan: loans,
+        libro: {
+          id: libros.id,
+          titulo: libros.titulo,
+          autor: libros.autor,
+          imagen_url: libros.imagen_url
+        }
+      })
+      .from(loans)
+      .innerJoin(libros, eq(loans.book_id, libros.id))
+      .where(eq(loans.status, "prestado"));
+    
+    return resultado.map(row => ({
+      ...row.loan,
+      libro: row.libro
+    }));
+  }
+
+  // Helper methods
+  private async _addStockAndRatingToBook(book: Libro): Promise<LibroWithRating> {
+    // Obtener información de stock
+    const [stockItem] = await db
+      .select()
+      .from(stock)
+      .where(eq(stock.book_id, book.id));
+    
+    const totalCopies = stockItem?.total_copies || 50;
+    const availableCopies = stockItem?.available_copies || 50;
+    
+    // Obtener calificaciones y comentarios
+    const comentariosResult = await db
+      .select({
+        count: sql<number>`count(*)`,
+        avg: sql<number>`avg(${comentarios.rating})`
+      })
+      .from(comentarios)
+      .where(eq(comentarios.book_id, book.id));
+    
+    const commentCount = Number(comentariosResult[0]?.count || 0);
+    const averageRating = Number(comentariosResult[0]?.avg || 0);
+    
+    return {
+      ...book,
+      totalCopies,
+      availableCopies,
+      commentCount,
+      averageRating: Math.round(averageRating * 10) / 10  // Redondear a 1 decimal
+    };
+  }
+}
+
 export class MemStorage implements IStorage {
   private users: Map<number, Usuario>;
   private userRoles: Map<number, {id: number, nombre: string}>;

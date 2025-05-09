@@ -22,6 +22,7 @@ export const usuarios = pgTable("usuarios", {
   email: varchar("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   role_id: integer("role_id").notNull(),
+  birth_date: date("birth_date").notNull(),
   created_at: timestamp("created_at").defaultNow()
 });
 
@@ -29,7 +30,8 @@ export const insertUsuarioSchema = createInsertSchema(usuarios).pick({
   nombre: true,
   email: true,
   password_hash: true,
-  role_id: true
+  role_id: true,
+  birth_date: true
 });
 
 export type InsertUsuario = z.infer<typeof insertUsuarioSchema>;
@@ -196,14 +198,37 @@ export const loginSchema = z.object({
 
 export type LoginData = z.infer<typeof loginSchema>;
 
+// Función para calcular la edad
+export function calculateAge(birthDate: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
 export const registerSchema = z.object({
   nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
-  confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
+  confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+  birthDate: z.coerce.date({
+    required_error: "La fecha de nacimiento es requerida",
+    invalid_type_error: "La fecha de nacimiento debe ser una fecha válida"
+  })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"]
+}).refine((data) => {
+  const age = calculateAge(data.birthDate);
+  return age >= 5;
+}, {
+  message: "Debes tener al menos 5 años para registrarte",
+  path: ["birthDate"]
 });
 
 export type RegisterData = z.infer<typeof registerSchema>;
