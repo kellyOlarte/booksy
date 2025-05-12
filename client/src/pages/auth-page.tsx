@@ -106,7 +106,9 @@ export default function AuthPage() {
 
   // Submit handlers
   const onLoginSubmit = (data: z.infer<typeof loginSchema>) => {
-   loginMutation.mutate(data);
+   loginMutation.mutate({
+    ...data,
+    email: data.email.toLowerCase()});
   };
   
 
@@ -117,7 +119,7 @@ export default function AuthPage() {
 
     registerMutation.mutate({
       nombre: data.nombre,
-      email: data.email,
+      email: data.email.toLowerCase(),
       password: data.password,
       confirmPassword: data.confirmPassword,
       birthDate: data.birthDate
