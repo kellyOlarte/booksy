@@ -3,11 +3,11 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetTrigger, 
-  SheetClose 
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose
 } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -57,35 +57,31 @@ export const Header: React.FC = () => {
               <BookOpen className="h-8 w-8 text-primary" />
               <span className="font-serif font-bold text-2xl text-primary ml-2">Booksy</span>
             </Link>
-            
+
             {/* Desktop nav */}
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link href="/" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                isActive("/") 
-                  ? "border-primary text-primary" 
+              <Link href="/" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive("/")
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}>
+                }`}>
                 Inicio
               </Link>
-              <Link href="/catalogo" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                isActive("/catalogo") || location.startsWith("/catalogo")
-                  ? "border-primary text-primary" 
+              <Link href="/catalogo" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive("/catalogo") || location.startsWith("/catalogo")
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}>
+                }`}>
                 Catálogo
               </Link>
-              <Link href="/destacados" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                isActive("/destacados") 
-                  ? "border-primary text-primary" 
+              <Link href="/destacados" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive("/destacados")
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}>
+                }`}>
                 Destacados
               </Link>
-              <Link href="/categorias" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                isActive("/categorias") 
-                  ? "border-primary text-primary" 
+              <Link href="/categorias" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive("/categorias")
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}>
+                }`}>
                 Categorías
               </Link>
             </div>
@@ -117,7 +113,7 @@ export const Header: React.FC = () => {
                     </Badge>
                   </Button>
                 </Link>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
@@ -183,7 +179,7 @@ export const Header: React.FC = () => {
                     <span className="font-serif font-bold text-xl text-primary ml-2">Booksy</span>
                   </Link>
                 </div>
-                
+
                 <form onSubmit={handleSearch} className="mb-6">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -198,56 +194,56 @@ export const Header: React.FC = () => {
                     />
                   </div>
                 </form>
-                
+
                 <div className="space-y-3">
                   <SheetClose asChild>
-                    <Button 
-                      variant={isActive("/") ? "secondary" : "ghost"} 
-                      className="w-full justify-start" 
+                    <Button
+                      variant={isActive("/") ? "secondary" : "ghost"}
+                      className="w-full justify-start"
                       asChild
                     >
                       <Link href="/">Inicio</Link>
                     </Button>
                   </SheetClose>
-                  
+
                   <SheetClose asChild>
-                    <Button 
-                      variant={isActive("/catalogo") || location.startsWith("/catalogo") ? "secondary" : "ghost"} 
-                      className="w-full justify-start" 
+                    <Button
+                      variant={isActive("/catalogo") || location.startsWith("/catalogo") ? "secondary" : "ghost"}
+                      className="w-full justify-start"
                       asChild
                     >
                       <Link href="/catalogo">Catálogo</Link>
                     </Button>
                   </SheetClose>
-                  
+
                   <SheetClose asChild>
-                    <Button 
-                      variant={isActive("/destacados") ? "secondary" : "ghost"} 
-                      className="w-full justify-start" 
+                    <Button
+                      variant={isActive("/destacados") ? "secondary" : "ghost"}
+                      className="w-full justify-start"
                       asChild
                     >
                       <Link href="/destacados">Destacados</Link>
                     </Button>
                   </SheetClose>
-                  
+
                   <SheetClose asChild>
-                    <Button 
-                      variant={isActive("/categorias") ? "secondary" : "ghost"} 
-                      className="w-full justify-start" 
+                    <Button
+                      variant={isActive("/categorias") ? "secondary" : "ghost"}
+                      className="w-full justify-start"
                       asChild
                     >
                       <Link href="/categorias">Categorías</Link>
                     </Button>
                   </SheetClose>
                 </div>
-                
+
                 <div className="border-t border-gray-200 mt-6 pt-6">
                   {user ? (
                     <div className="space-y-3">
                       <SheetClose asChild>
-                        <Button 
-                          variant={isActive("/perfil") ? "secondary" : "ghost"} 
-                          className="w-full justify-start" 
+                        <Button
+                          variant={isActive("/perfil") ? "secondary" : "ghost"}
+                          className="w-full justify-start"
                           asChild
                         >
                           <Link href="/perfil">
@@ -256,11 +252,11 @@ export const Header: React.FC = () => {
                           </Link>
                         </Button>
                       </SheetClose>
-                      
+
                       <SheetClose asChild>
-                        <Button 
-                          variant={isActive("/prestamos") ? "secondary" : "ghost"} 
-                          className="w-full justify-start" 
+                        <Button
+                          variant={isActive("/prestamos") ? "secondary" : "ghost"}
+                          className="w-full justify-start"
                           asChild
                         >
                           <Link href="/prestamos">
@@ -269,12 +265,12 @@ export const Header: React.FC = () => {
                           </Link>
                         </Button>
                       </SheetClose>
-                      
+
                       {user.role_id === 2 && (
                         <SheetClose asChild>
-                          <Button 
-                            variant={isActive("/admin") ? "secondary" : "ghost"} 
-                            className="w-full justify-start" 
+                          <Button
+                            variant={isActive("/admin") ? "secondary" : "ghost"}
+                            className="w-full justify-start"
                             asChild
                           >
                             <Link href="/admin">
@@ -284,10 +280,10 @@ export const Header: React.FC = () => {
                           </Button>
                         </SheetClose>
                       )}
-                      
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start" 
+
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
                         onClick={handleLogout}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
@@ -297,14 +293,14 @@ export const Header: React.FC = () => {
                   ) : (
                     <div className="space-y-3">
                       <SheetClose asChild>
-                        <Button className="w-full" asChild>
-                          <Link href="/auth">Iniciar sesión</Link>
+                        <Button className="w-full" onClick={() => navigate("/auth")}>
+                          Iniciar sesión
                         </Button>
                       </SheetClose>
-                      
+
                       <SheetClose asChild>
-                        <Button variant="outline" className="w-full" asChild>
-                          <Link href="/auth?tab=register">Registrarse</Link>
+                        <Button variant="outline" className="w-full" onClick={() => navigate("/auth?tab=register")}>
+                          Registrarse
                         </Button>
                       </SheetClose>
                     </div>

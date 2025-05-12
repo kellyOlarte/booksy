@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { BookOpen } from "lucide-react";
@@ -18,6 +21,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
+
 // Login schema
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -29,11 +33,11 @@ function calculateAge(birthDate: Date): number {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   return age;
 }
 
@@ -62,7 +66,7 @@ export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  
+
   // Parse tab from URL 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -71,14 +75,14 @@ export default function AuthPage() {
       setActiveTab("register");
     }
   }, []);
-  
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate("/");
     }
   }, [user, navigate]);
-  
+
   // Login form
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -87,7 +91,7 @@ export default function AuthPage() {
       password: ""
     }
   });
-  
+
   // Register form
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -99,22 +103,23 @@ export default function AuthPage() {
       birthDate: new Date(2000, 0, 1) // Default to January 1, 2000
     }
   });
-  
+
   // Submit handlers
   const onLoginSubmit = (data: z.infer<typeof loginSchema>) => {
     loginMutation.mutate(data);
   };
-  
+
   const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
     // Formatear la fecha como string ISO para enviar al servidor
     const formattedBirthDate = data.birthDate.toISOString().split('T')[0];
-    
+
+
     registerMutation.mutate({
       nombre: data.nombre,
       email: data.email,
       password: data.password,
       confirmPassword: data.confirmPassword,
-      birthDate: formattedBirthDate
+      birthDate: data.birthDate
     });
   };
 
@@ -124,16 +129,17 @@ export default function AuthPage() {
         <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
           {/* Left Column - Auth Forms */}
           <div className="w-full lg:w-1/2">
-            <Tabs defaultValue={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
                 <TabsTrigger value="register">Registrarse</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Iniciar sesión</CardTitle>
+                    <CardTitle>Iniciar sesión
+                    </CardTitle>
                     <CardDescription>
                       Introduce tus credenciales para acceder a tu cuenta
                     </CardDescription>
@@ -154,24 +160,48 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={loginForm.control}
                           name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Contraseña</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="••••••••" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const [showPassword, setShowPassword] = useState(false);
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Contraseña</FormLabel>
+                                <FormControl>
+                                  <div style={{ position: "relative" }}>
+                                    <Input
+                                      {...field}
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="••••••••"
+                                    />
+                                    <div
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      style={{
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </div>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
-                        
-                        <Button 
-                          type="submit" 
-                          className="w-full" 
+
+
+
+                        <Button
+                          type="submit"
+                          className="w-full"
                           disabled={loginMutation.isPending}
                         >
                           {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar sesión"}
@@ -182,18 +212,19 @@ export default function AuthPage() {
                   <CardFooter className="flex flex-col space-y-4">
                     <div className="text-sm text-center text-gray-500">
                       ¿No tienes una cuenta?{" "}
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="text-primary hover:underline"
                         onClick={() => setActiveTab("register")}
                       >
                         Regístrate
                       </button>
+
                     </div>
                   </CardFooter>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="register">
                 <Card>
                   <CardHeader>
@@ -218,7 +249,7 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={registerForm.control}
                           name="email"
@@ -232,7 +263,7 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={registerForm.control}
                           name="birthDate"
@@ -259,14 +290,21 @@ export default function AuthPage() {
                                   </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
+                                  <DayPicker
                                     mode="single"
                                     selected={field.value}
                                     onSelect={field.onChange}
-                                    disabled={(date) =>
-                                      date > new Date() || date < new Date("1900-01-01")
-                                    }
-                                    initialFocus
+                                    captionLayout="dropdown"
+                                    fromYear={1900}
+                                    toYear={new Date().getFullYear()}
+                                    locale={es}
+                                    modifiers={{
+                                      future: (date) => date > new Date(),
+                                    }}
+                                    modifiersClassNames={{
+                                      selected: 'bg-blue-500 text-white',
+                                      future: 'text-gray-400',
+                                    }}
                                   />
                                 </PopoverContent>
                               </Popover>
@@ -274,38 +312,82 @@ export default function AuthPage() {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={registerForm.control}
                           name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Contraseña</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="••••••••" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const [showPassword, setShowPassword] = useState(false);
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Contraseña</FormLabel>
+                                <FormControl>
+                                  <div style={{ position: "relative" }}>
+                                    <Input
+                                      {...field}
+                                      type={showPassword ? "text" : "password"}
+                                      placeholder="••••••••"
+                                    />
+                                    <div
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      style={{
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </div>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
-                        
+
                         <FormField
                           control={registerForm.control}
                           name="confirmPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Confirmar contraseña</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="••••••••" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field }) => {
+                            const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+                            return (
+                              <FormItem>
+                                <FormLabel>Confirmar contraseña</FormLabel>
+                                <FormControl>
+                                  <div style={{ position: "relative" }}>
+                                    <Input
+                                      {...field}
+                                      type={showConfirmPassword ? "text" : "password"}
+                                      placeholder="••••••••"
+                                    />
+                                    <div
+                                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                      style={{
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </div>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
-                        
-                        <Button 
-                          type="submit" 
-                          className="w-full" 
+
+                        <Button
+                          type="submit"
+                          className="w-full"
                           disabled={registerMutation.isPending}
                         >
                           {registerMutation.isPending ? "Registrando..." : "Crear cuenta"}
@@ -316,8 +398,8 @@ export default function AuthPage() {
                   <CardFooter className="flex flex-col space-y-4">
                     <div className="text-sm text-center text-gray-500">
                       ¿Ya tienes una cuenta?{" "}
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="text-primary hover:underline"
                         onClick={() => setActiveTab("login")}
                       >
@@ -329,22 +411,22 @@ export default function AuthPage() {
               </TabsContent>
             </Tabs>
           </div>
-          
+
           {/* Right Column - Hero Section */}
           <div className="w-full lg:w-1/2 bg-primary rounded-lg p-8 text-white">
             <div className="flex items-center mb-8">
               <BookOpen className="h-10 w-10 mr-2" />
               <h2 className="text-2xl font-serif font-bold">Booksy</h2>
             </div>
-            
+
             <h1 className="text-3xl font-serif font-bold mb-4">
               Bienvenido a tu biblioteca virtual
             </h1>
-            
+
             <p className="text-lg mb-6 text-white/80">
               Accede a una gran colección de libros, haz préstamos, califica y comenta tus lecturas favoritas.
             </p>
-            
+
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="bg-white/10 p-2 rounded-full mr-3">
@@ -358,7 +440,7 @@ export default function AuthPage() {
                   <p className="text-white/80">Solicita préstamos de libros con un simple clic.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="bg-white/10 p-2 rounded-full mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -371,7 +453,7 @@ export default function AuthPage() {
                   <p className="text-white/80">Explora una amplia variedad de géneros literarios.</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="bg-white/10 p-2 rounded-full mr-3">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
