@@ -72,7 +72,7 @@ export default function BookDetailPage() {
     onSuccess: () => {
       toast({
         title: "¡Préstamo realizado!",
-        description: `Has solicitado "${book?.titulo}" por ${loanDuration} días.`,
+        description: `Has solicitado "${book?.titulo}" por ${loanDuration} días. Ya está disponible para recogerlo en la biblioteca 📖`,
       });
       // Refetch book data to update availability
       queryClient.invalidateQueries({ queryKey: [`/api/libros/${bookId}`] });
