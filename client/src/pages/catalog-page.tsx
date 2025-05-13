@@ -176,7 +176,7 @@ export default function CatalogPage() {
                             }
                           />
                           <Label htmlFor={`rating-${rating}`} className="text-sm flex items-center">
-                            <StarRating rating={rating} showValue={false} size="sm" /> o más QUITAR
+                            <StarRating rating={rating} showValue={false} size="sm" />
                           </Label>
                         </div>
                       ))}
