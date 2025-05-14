@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { getCategories } from "./categories"; 
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { 
@@ -63,6 +64,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error al obtener libros destacados" });
     }
   });
+
+  // Obtener la categoria de los libros
+  app.get("/api/categories", getCategories);
 
   // Obtener libros por categoría
   app.get("/api/categorias", async (req, res) => {

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LibroWithRating, Usuario, LoanWithBookInfo, InsertLibro } from "@shared/schema";
 import {
   Tabs,
@@ -108,6 +109,16 @@ export default function AdminPage() {
   const [bookToEdit, setBookToEdit] = useState<LibroWithRating | null>(null);
   const [bookToDelete, setBookToDelete] = useState<LibroWithRating | null>(null);
   
+const { data: categories = [], isLoading: isLoadingCategories } = useQuery<string[]>({
+  queryKey: ["/api/categories"],
+  queryFn: async () => {
+    const res = await fetch("/api/categories");
+    if (!res.ok) throw new Error("Error al cargar categorías");
+    return res.json();
+  }
+});
+
+
   // Check if user is admin
   const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/check-admin"],
@@ -408,20 +419,31 @@ export default function AdminPage() {
                               )}
                             />
                             
-                            <FormField
-                              control={bookForm.control}
-                              name="categoria"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Categoría</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Categoría del libro" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
+                              <FormField
+                                control={bookForm.control}
+                                name="categoria"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Categoría</FormLabel>
+                                    <FormControl>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecciona una categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {categories.map((cat) => (
+                                            <SelectItem key={cat} value={cat}>
+                                              {cat}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+              
                             <FormField
                               control={bookForm.control}
                               name="imagen_url"
@@ -787,20 +809,31 @@ export default function AdminPage() {
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
-                    control={bookForm.control}
-                    name="categoria"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoría</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Categoría del libro" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        control={bookForm.control}
+                        name="categoria"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoría</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona una categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {categories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                      {cat}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                   
                   <FormField
                     control={bookForm.control}
