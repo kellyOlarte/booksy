@@ -84,10 +84,13 @@ import { Redirect } from "wouter";
 
 // Book validation schema
 const bookSchema = z.object({
-  titulo: z.string().min(3, { message: "El título debe tener al menos 3 caracteres" }),
+  titulo: z.string()
+  .min(3, { message: "El título debe tener al menos 3 caracteres" })
+  .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'-]+$/, {message: "El título contiene caracteres no permitidos"}),
   autor: z.string().min(3, { message: "El autor debe tener al menos 3 caracteres" }),
   published_year: z.coerce.number().min(1000).max(new Date().getFullYear()).optional().nullable(),
-  description: z.string().min(10, { message: "La descripción debe tener al menos 10 caracteres" }),
+  description: z.string().min(10, { message: "La descripción debe tener al menos 10 caracteres" })
+  .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'"!?-]+$/, {message: "La descripción contiene caracteres no permitidos"}),
   categoria: z.string().min(1, { message: "La categoría es requerida" }),
   imagen_url: z.string().url({ message: "La URL de la imagen no es válida" }).optional().nullable(),
   totalCopies: z.coerce.number().min(1).max(1000),
