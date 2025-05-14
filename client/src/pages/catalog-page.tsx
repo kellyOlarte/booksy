@@ -31,7 +31,7 @@ export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState<string>(initialSearchTerm);
   const [availableOnly, setAvailableOnly] = useState<boolean>(false);
   const [minRating, setMinRating] = useState<number[]>([]);
-  const [yearFilter, setYearFilter] = useState<number[]>([1600, new Date().getFullYear()]);
+  const [yearFilter, setYearFilter] = useState<[number, number]>([1600, new Date().getFullYear()]);
   const [sortBy, setSortBy] = useState<string>("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
@@ -209,11 +209,11 @@ export default function CatalogPage() {
                         <span className="text-xs text-gray-500">{yearFilter[1]}</span>
                       </div>
                       <Slider
-                        defaultValue={yearFilter}
-                        min={1900}
+                        value={yearFilter}
+                        min={1600}
                         max={new Date().getFullYear()}
                         step={1}
-                        onValueChange={(value) => setYearFilter(value as number[])}
+                        onValueChange={(value) => setYearFilter(value as [number, number])}
                       />
                     </div>
                   </div>

@@ -298,7 +298,7 @@ export default function AuthPage() {
                                     selected={field.value}
                                     onSelect={field.onChange}
                                     captionLayout="dropdown"
-                                    fromYear={1900}
+                                    fromYear={1600}
                                     toYear={new Date().getFullYear()}
                                     locale={es}
                                     modifiers={{
