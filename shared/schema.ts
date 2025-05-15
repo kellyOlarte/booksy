@@ -128,7 +128,13 @@ export const insertComentarioSchema = createInsertSchema(comentarios).pick({
   user_id: true,
   content: true,
   rating: true
-});
+}).extend({
+    content: z.string()
+      .min(5, { message: "El comentario debe tener al menos 5 caracteres" })
+      .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'"!?-]+$/, {
+        message: "El comentario contiene caracteres no permitidos"
+      })
+  });
 
 export type InsertComentario = z.infer<typeof insertComentarioSchema>;
 export type Comentario = typeof comentarios.$inferSelect;

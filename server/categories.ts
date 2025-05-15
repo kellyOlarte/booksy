@@ -6,7 +6,8 @@ export const getCategories = (req: Request, res: Response) => {
     "No Ficción",
     "Literatura Clásica",
     "Ciencia y Tecnología",
-    "Infantil y Juvenil"
+    "Infantil y Juvenil",
+    "Terror"
   ];
 
   res.json(categorias);
