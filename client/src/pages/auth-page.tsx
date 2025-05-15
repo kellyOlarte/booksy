@@ -284,7 +284,7 @@ export default function AuthPage() {
               <TabsContent value="register">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Crearrrrr cuenta</CardTitle>
+                    <CardTitle>Crear cuenta</CardTitle>
                     <CardDescription>
                       Completa el formulario para crear una nueva cuenta
                     </CardDescription>
