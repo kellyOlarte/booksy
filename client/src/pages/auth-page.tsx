@@ -43,8 +43,19 @@ function calculateAge(birthDate: Date): number {
 
 // Register schema
 const registerSchema = z.object({
-  nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
-  email: z.string().email({ message: "Email inválido" }),
+  nombre: z.string()
+    .min(3, { message: "El nombre debe tener al menos 3 caracteres" })
+    .regex(/^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]+$/, { message: "El nombre solo puede contener letras y espacios" }),
+  // nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres"}),
+  email: z.string()
+    .email({ message: "Email inválido"})
+    .refine((email) => {
+      const domain = email.split("@")[1];
+      const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com"];
+      return allowedDomains.includes(domain);
+    }, {
+      message: "Dominio de correo no permitido. Usa un dominio válido como gmail.com",
+    }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
   confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
   birthDate: z.date({
@@ -106,11 +117,12 @@ export default function AuthPage() {
 
   // Submit handlers
   const onLoginSubmit = (data: z.infer<typeof loginSchema>) => {
-   loginMutation.mutate({
-    ...data,
-    email: data.email.toLowerCase()});
+    loginMutation.mutate({
+      ...data,
+      email: data.email.toLowerCase()
+    });
   };
-  
+
 
   const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
     // Formatear la fecha como string ISO para enviar al servidor
@@ -123,7 +135,48 @@ export default function AuthPage() {
       password: data.password,
       confirmPassword: data.confirmPassword,
       birthDate: data.birthDate
-    });
+    }, {
+      onError: (error: any) => {
+        let mensajes: string[] = [];
+        let rawMessage = error?.response?.data?.message || error?.message || error || "Error desconocido";
+
+        // Elimina el prefijo "400: " si existe
+        if (typeof rawMessage === "string" && rawMessage.startsWith("400: ")) {
+          rawMessage = rawMessage.slice(5).trim();
+        }
+
+        let parsed = rawMessage;
+        // Solo intenta parsear si es string y parece un JSON
+        if (typeof rawMessage === "string" && (rawMessage.startsWith("{") || rawMessage.startsWith("["))) {
+          try {
+            parsed = JSON.parse(rawMessage);
+          } catch {
+            parsed = rawMessage;
+          }
+        }
+
+        // Extrae mensajes según el tipo de respuesta
+        if (Array.isArray(parsed)) {
+          // Solo toma los mensajes de cada objeto, ignora el resto
+          mensajes = parsed.map((e) => typeof e === "object" && e.message ? e.message : JSON.stringify(e));
+        } else if (parsed && typeof parsed === "object") {
+          if (parsed.message && typeof parsed.message === "string") {
+            mensajes = [parsed.message];
+          } else {
+            mensajes = Object.values(parsed)
+              .map((e: any) => (e && e.message ? e.message : JSON.stringify(e)));
+          }
+        } else if (typeof parsed === "string") {
+          mensajes = [parsed];
+        } else {
+          mensajes = ["Error desconocido"];
+        }
+
+        // Muestra solo los mensajes limpios, uno por línea
+        registerForm.setError("root", { message: mensajes.join("\n") });
+      }
+    }
+    );
   };
 
   return (
@@ -231,7 +284,7 @@ export default function AuthPage() {
               <TabsContent value="register">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Crear cuenta</CardTitle>
+                    <CardTitle>Crearrrrr cuenta</CardTitle>
                     <CardDescription>
                       Completa el formulario para crear una nueva cuenta
                     </CardDescription>
@@ -239,6 +292,11 @@ export default function AuthPage() {
                   <CardContent>
                     <Form {...registerForm}>
                       <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                        {registerForm.formState.errors.root && (
+                          <div className="text-red-500 text-sm mb-2 whitespace-pre-line">
+                            {registerForm.formState.errors.root.message}
+                          </div>
+                        )}
                         <FormField
                           control={registerForm.control}
                           name="nombre"
