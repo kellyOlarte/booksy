@@ -63,6 +63,8 @@ export interface IStorage {
   createLoan(loan: InsertLoan): Promise<Loan>;
   returnLoan(id: number): Promise<Loan>;
   getAllActiveLoans(): Promise<LoanWithBookInfo[]>;
+  // Función de búsqueda
+  searchBooks(searchTerm: string): Promise<{libros: LibroWithRating[], categorias: {categoria: string, count: number}[]}>;
 }
 
 import connectPg from "connect-pg-simple";
@@ -479,6 +481,35 @@ export class DatabaseStorage implements IStorage {
       availableCopies,
       commentCount,
       averageRating: Math.round(averageRating * 10) / 10  // Redondear a 1 decimal
+    };
+  }
+
+  async searchBooks(searchTerm: string): Promise<{libros: LibroWithRating[], categorias: {categoria: string, count: number}[]}> {
+    // Buscar coincidencias en libros
+    const term = `%${searchTerm.toLowerCase()}%`;
+    const librosResult = await db.select().from(libros).where(
+        or(
+            sql`lower(${libros.titulo}) like ${term}`,
+            sql`lower(${libros.autor}) like ${term}`,
+            sql`lower(${libros.description}) like ${term}`,
+            sql`lower(${libros.categoria}) like ${term}`
+        )
+    );
+
+    const librosWithInfo = await Promise.all(librosResult.map(book => this._addStockAndRatingToBook(book)));
+
+    // Buscar coincidencias en categorías
+    const categoriasResult = await db.execute<{categoria: string, count: number}>(
+        sql`SELECT categoria, COUNT(*) as count 
+        FROM ${libros} 
+        WHERE lower(categoria) like ${term} 
+        GROUP BY categoria 
+        ORDER BY count DESC`
+    );
+
+    return {
+      libros: librosWithInfo,
+      categorias: categoriasResult.rows
     };
   }
 }

@@ -392,6 +392,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Endpoint - Búsqueda integrada
+  app.get("/api/search", async (req, res) => {
+    try {
+      const searchTerm = req.query.q as string | undefined;
+
+      if (!searchTerm || searchTerm.trim() === "") {
+        return res.status(400).json({ message: "Se requiere un término de búsqueda" });
+      }
+
+      const resultados = await storage.searchBooks(searchTerm.trim());
+      res.json(resultados);
+    } catch (error) {
+      res.status(500).json({ message: "Error al realizar la búsqueda" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
