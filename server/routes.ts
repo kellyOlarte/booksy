@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { getCategories } from "./categories"; 
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { 
@@ -63,6 +64,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error al obtener libros destacados" });
     }
   });
+
+  // Obtener la categoria de los libros
+  app.get("/api/categories", getCategories);
 
   // Obtener libros por categoría
   app.get("/api/categorias", async (req, res) => {
@@ -385,6 +389,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Datos inválidos", errors: error.errors });
       }
       res.status(500).json({ message: "Error al actualizar estado del usuario" });
+    }
+  });
+
+  // API Endpoint - Búsqueda integrada
+  app.get("/api/search", async (req, res) => {
+    try {
+      const searchTerm = req.query.q as string | undefined;
+
+      if (!searchTerm || searchTerm.trim() === "") {
+        return res.status(400).json({ message: "Se requiere un término de búsqueda" });
+      }
+
+      const resultados = await storage.searchBooks(searchTerm.trim());
+      res.json(resultados);
+    } catch (error) {
+      res.status(500).json({ message: "Error al realizar la búsqueda" });
     }
   });
 

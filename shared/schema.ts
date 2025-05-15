@@ -128,7 +128,13 @@ export const insertComentarioSchema = createInsertSchema(comentarios).pick({
   user_id: true,
   content: true,
   rating: true
-});
+}).extend({
+    content: z.string()
+      .min(5, { message: "El comentario debe tener al menos 5 caracteres" })
+      .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'"!?-]+$/, {
+        message: "El comentario contiene caracteres no permitidos"
+      })
+  });
 
 export type InsertComentario = z.infer<typeof insertComentarioSchema>;
 export type Comentario = typeof comentarios.$inferSelect;
@@ -191,39 +197,61 @@ export type InsertLog = z.infer<typeof insertLogSchema>;
 export type Log = typeof logs.$inferSelect;
 
 // Auth schemas for frontend
+const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com"];
+
 export const loginSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
-  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
+  email: z.string()
+    .email({ message: "Email inválido" })
+    .refine((email) => {
+      const domain = email.split("@")[1];
+      return allowedDomains.includes(domain);
+    }, {
+      message: "Dominio de correo no permitido. Usa un dominio válido como gmail.com",
+    }),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
 
-// Función para calcular la edad
-export function calculateAge(birthDate: Date): number {
+// Función auxiliar para calcular edad
+function calculateAge(birthDate: Date) {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
   return age;
 }
 
 export const registerSchema = z.object({
-  nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
-  email: z.string().email({ message: "Email inválido" }),
+  nombre: z.string()
+    .min(3, { message: "El nombre debe tener al menos 3 caracteres" })
+    .regex(/^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]+$/, { message: "El nombre solo puede contener letras y espacios" }),
+
+  email: z.string()
+    .email({ message: "Email inválido" })
+    .refine((email) => {
+      const domain = email.split("@")[1];
+      return allowedDomains.includes(domain);
+    }, {
+      message: "Dominio de correo no permitido. Usa un dominio válido como gmail.com",
+    }),
+
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+
   confirmPassword: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+
   birthDate: z.coerce.date({
     required_error: "La fecha de nacimiento es requerida",
     invalid_type_error: "La fecha de nacimiento debe ser una fecha válida"
   })
-}).refine((data) => data.password === data.confirmPassword, {
+})
+.refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"]
-}).refine((data) => {
+})
+.refine((data) => {
   const age = calculateAge(data.birthDate);
   return age >= 5;
 }, {

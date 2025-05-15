@@ -72,7 +72,7 @@ export default function BookDetailPage() {
     onSuccess: () => {
       toast({
         title: "¡Préstamo realizado!",
-        description: `Has solicitado "${book?.titulo}" por ${loanDuration} días.`,
+        description: `Has solicitado "${book?.titulo}" por ${loanDuration} días. Ya está disponible para recogerlo en la biblioteca 📖`,
       });
       // Refetch book data to update availability
       queryClient.invalidateQueries({ queryKey: [`/api/libros/${bookId}`] });
@@ -133,6 +133,18 @@ export default function BookDetailPage() {
   
   // Handle comment submission
   const handleCommentSubmit = () => {
+
+  const specialCharsRegex = /[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ.,;:¡!¿?\s]/;
+
+  if (specialCharsRegex.test(comment)) {
+    toast({
+      title: "Comentario no válido",
+      description: "No se permiten caracteres especiales en el comentario.",
+      variant: "destructive",
+    });
+    return;
+  }
+
     if (!userRating) {
       toast({
         title: "Calificación requerida",

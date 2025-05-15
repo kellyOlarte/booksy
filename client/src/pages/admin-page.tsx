@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LibroWithRating, Usuario, LoanWithBookInfo, InsertLibro } from "@shared/schema";
 import {
   Tabs,
@@ -83,10 +84,14 @@ import { Redirect } from "wouter";
 
 // Book validation schema
 const bookSchema = z.object({
-  titulo: z.string().min(3, { message: "El título debe tener al menos 3 caracteres" }),
-  autor: z.string().min(3, { message: "El autor debe tener al menos 3 caracteres" }),
+  titulo: z.string()
+  .min(3, { message: "El título debe tener al menos 3 caracteres" })
+  .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'-]+$/, {message: "El título contiene caracteres no permitidos"}),
+  autor: z.string().min(3, { message: "El autor debe tener al menos 3 caracteres" })
+  .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/, {message: "El nombre del autor contiene caracteres no permitidos"}),
   published_year: z.coerce.number().min(1000).max(new Date().getFullYear()).optional().nullable(),
-  description: z.string().min(10, { message: "La descripción debe tener al menos 10 caracteres" }),
+  description: z.string().min(10, { message: "La descripción debe tener al menos 10 caracteres" })
+  .regex(/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,:;()'"!?-]+$/, {message: "La descripción contiene caracteres no permitidos"}),
   categoria: z.string().min(1, { message: "La categoría es requerida" }),
   imagen_url: z.string().url({ message: "La URL de la imagen no es válida" }).optional().nullable(),
   totalCopies: z.coerce.number().min(1).max(1000),
@@ -108,6 +113,16 @@ export default function AdminPage() {
   const [bookToEdit, setBookToEdit] = useState<LibroWithRating | null>(null);
   const [bookToDelete, setBookToDelete] = useState<LibroWithRating | null>(null);
   
+const { data: categories = [], isLoading: isLoadingCategories } = useQuery<string[]>({
+  queryKey: ["/api/categories"],
+  queryFn: async () => {
+    const res = await fetch("/api/categories");
+    if (!res.ok) throw new Error("Error al cargar categorías");
+    return res.json();
+  }
+});
+
+
   // Check if user is admin
   const { data: isAdmin, isLoading: isCheckingAdmin } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/check-admin"],
@@ -141,7 +156,7 @@ export default function AdminPage() {
       published_year: null,
       description: "",
       categoria: "General",
-      imagen_url: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80",
+      imagen_url: " ",
       totalCopies: 50,
       availableCopies: 50
     }
@@ -290,9 +305,15 @@ export default function AdminPage() {
   };
   
   const handleDeleteBook = () => {
-    if (bookToDelete) {
-      deleteBookMutation.mutate(bookToDelete.id);
-    }
+    // if (bookToDelete) {
+    //   deleteBookMutation.mutate(bookToDelete.id);
+    // }
+    toast({
+    title: "Acción no permitida",
+    description: "Por las auditorías no es permitido eliminar libros.",
+    variant: "destructive"
+  });
+  setBookToDelete(null);
   };
   
   const toggleUserStatus = (id: number, currentStatus: boolean) => {
@@ -345,10 +366,13 @@ export default function AdminPage() {
                   
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" /> Añadir libro
-                      </Button>
-                    </DialogTrigger>
+                    <Button onClick={() => {
+                      bookForm.reset(); 
+                      setBookToEdit(null);
+                    }}>
+                      <Plus className="mr-2 h-4 w-4" /> Añadir libro
+                    </Button>
+                  </DialogTrigger>
                     <DialogContent className="max-w-4xl">
                       <DialogHeader>
                         <DialogTitle>Nuevo libro</DialogTitle>
@@ -408,20 +432,31 @@ export default function AdminPage() {
                               )}
                             />
                             
-                            <FormField
-                              control={bookForm.control}
-                              name="categoria"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Categoría</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Categoría del libro" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
+                              <FormField
+                                control={bookForm.control}
+                                name="categoria"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Categoría</FormLabel>
+                                    <FormControl>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecciona una categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {categories.map((cat) => (
+                                            <SelectItem key={cat} value={cat}>
+                                              {cat}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+              
                             <FormField
                               control={bookForm.control}
                               name="imagen_url"
@@ -787,20 +822,31 @@ export default function AdminPage() {
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
-                    control={bookForm.control}
-                    name="categoria"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoría</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Categoría del libro" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        control={bookForm.control}
+                        name="categoria"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoría</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona una categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {categories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                      {cat}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                   
                   <FormField
                     control={bookForm.control}

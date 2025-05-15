@@ -30,8 +30,8 @@ export default function CatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [searchTerm, setSearchTerm] = useState<string>(initialSearchTerm);
   const [availableOnly, setAvailableOnly] = useState<boolean>(false);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [yearFilter, setYearFilter] = useState<number[]>([1900, new Date().getFullYear()]);
+  const [minRating, setMinRating] = useState<number[]>([]);
+  const [yearFilter, setYearFilter] = useState<[number, number]>([1600, new Date().getFullYear()]);
   const [sortBy, setSortBy] = useState<string>("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
@@ -51,13 +51,18 @@ export default function CatalogPage() {
   
   // Apply client-side filters
   const filteredBooks = books.filter(book => {
+
+    //Filtro por categoría
+    if (selectedCategory !== "todas" && book.categoria !== selectedCategory) {
+    return false;
+  }
     // Filter by availability
     if (availableOnly && book.availableCopies <= 0) {
       return false;
     }
     
     // Filter by rating
-    if (book.averageRating < minRating) {
+    if (minRating.length > 0 && !minRating.includes(book.averageRating)) {
       return false;
     }
     
@@ -92,8 +97,8 @@ export default function CatalogPage() {
     setSelectedCategory("todas");
     setSearchTerm("");
     setAvailableOnly(false);
-    setMinRating(0);
-    setYearFilter([1900, new Date().getFullYear()]);
+    setMinRating([]);
+    setYearFilter([1600, new Date().getFullYear()]);
     setSortBy("recent");
   };
   
@@ -162,11 +167,16 @@ export default function CatalogPage() {
                         <div key={rating} className="flex items-center space-x-2">
                           <Checkbox 
                             id={`rating-${rating}`}
-                            checked={minRating === rating}
-                            onCheckedChange={() => setMinRating(minRating === rating ? 0 : rating)}
+                            checked={minRating.includes(rating)}
+                            onCheckedChange={() => setMinRating(prev =>
+                                prev.includes(rating) 
+                                  ? prev.filter(r => r !== rating)  
+                                  : [...prev, rating]               
+                              )
+                            }
                           />
                           <Label htmlFor={`rating-${rating}`} className="text-sm flex items-center">
-                            <StarRating rating={rating} showValue={false} size="sm" /> o más
+                            <StarRating rating={rating} showValue={false} size="sm" />
                           </Label>
                         </div>
                       ))}
@@ -199,11 +209,11 @@ export default function CatalogPage() {
                         <span className="text-xs text-gray-500">{yearFilter[1]}</span>
                       </div>
                       <Slider
-                        defaultValue={yearFilter}
-                        min={1900}
+                        value={yearFilter}
+                        min={1600}
                         max={new Date().getFullYear()}
                         step={1}
-                        onValueChange={(value) => setYearFilter(value as number[])}
+                        onValueChange={(value) => setYearFilter(value as [number, number])}
                       />
                     </div>
                   </div>
@@ -261,7 +271,7 @@ export default function CatalogPage() {
             </div>
             
             {/* Search summary */}
-            {(searchTerm || selectedCategory !== "todas" || availableOnly || minRating > 0) && (
+            {(searchTerm || selectedCategory !== "todas" || availableOnly || minRating > []) && (
               <div className="bg-gray-100 p-3 rounded-lg mb-6 flex items-center justify-between">
                 <div className="flex items-center">
                   <BookOpen className="mr-2 h-5 w-5 text-primary" />
@@ -270,7 +280,7 @@ export default function CatalogPage() {
                     {searchTerm && <span> para "<strong>{searchTerm}</strong>"</span>}
                     {selectedCategory !== "todas" && <span> en <strong>{selectedCategory}</strong></span>}
                     {availableOnly && <span> <strong>disponibles</strong></span>}
-                    {minRating > 0 && <span> con <strong>{minRating}+ estrellas</strong></span>}
+                    {minRating > [] && <span> con <strong>{minRating}+ estrellas</strong></span>}
                   </span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -284,7 +294,7 @@ export default function CatalogPage() {
               books={sortedBooks}
               isLoading={isLoading} 
               emptyMessage={
-                searchTerm || selectedCategory !== "todas" || availableOnly || minRating > 0
+                searchTerm || selectedCategory !== "todas" || availableOnly || minRating > []
                   ? "No hay libros que coincidan con los filtros aplicados."
                   : "No hay libros disponibles en el catálogo."
               }
