@@ -534,7 +534,7 @@ export class MemStorage implements IStorage {
     const adminUser: Usuario = {
       id: this.userIdCounter++,
       nombre: "Admin",
-      email: "admin@booksy.com",
+      email: "admin@gmail.com",
       password_hash: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918.45a7dfc69d28f4c155c1c0214d4d1f71", // admin
       role_id: adminRole.id,
       created_at: new Date()

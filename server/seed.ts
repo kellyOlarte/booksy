@@ -41,7 +41,7 @@ async function seed() {
     
     const [adminUser] = await db.insert(usuarios).values({
       nombre: "Administrador",
-      email: "admin@biblioteca.com",
+      email: "admin@gmail.com",
       password_hash: adminPassword,
       role_id: adminRole.id,
       birth_date: adminBirthDate
