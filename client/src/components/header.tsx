@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Sheet, 
   SheetContent, 
@@ -53,6 +54,11 @@ export const Header: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [showResults, setShowResults] = useState(false);
+  // Fetch active loans with the correct type
+  const { data: activeLoans = [], isLoading: isLoadingActive } = useQuery<LoanWithBookInfo[]>({
+    queryKey: ["/api/prestamos"],
+    enabled: !!user,
+  });
 
   // Buscar mientras se escribe con debounce
   useEffect(() => {
@@ -260,7 +266,7 @@ export const Header: React.FC = () => {
                   <Button variant="ghost" size="icon" className="relative">
                     <BookMarked className="h-5 w-5" />
                     <Badge className="absolute -top-1 -right-1 px-1.5 min-w-[1.25rem] h-5 flex items-center justify-center">
-                      0
+                      {isLoadingActive ? "..." : activeLoans.length}
                     </Badge>
                   </Button>
                 </Link>
