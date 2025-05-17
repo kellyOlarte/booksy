@@ -25,7 +25,7 @@ export default function FeaturedPage() {
   
   // Create curated collections from all books
   const romanticBooks = allBooks
-    .filter(book => book.categoria === "Románticos")
+    .filter(book => book.categoria === "Romance")
     .sort((a, b) => b.averageRating - a.averageRating)
     .slice(0, 5);
   

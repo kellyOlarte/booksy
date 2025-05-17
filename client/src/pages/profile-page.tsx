@@ -2,27 +2,27 @@ import React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { LoanWithBookInfo } from "@shared/schema";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from "@/components/ui/tabs";
-import { 
-  BookOpen, 
-  User, 
-  Calendar, 
-  Clock, 
-  Star, 
+import {
+  BookOpen,
+  User,
+  Calendar,
+  Clock,
+  Star,
   MessageSquare,
   Loader2
 } from "lucide-react";
@@ -31,23 +31,32 @@ import { es } from "date-fns/locale";
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  
+  const userId = user ? user.id : 0;
+
   // Fetch user's active loans
   const { data: activeLoans = [], isLoading: isLoadingActive } = useQuery<LoanWithBookInfo[]>({
     queryKey: ["/api/prestamos"],
     enabled: !!user
   });
-  
+
   // Fetch user's loan history
   const { data: loanHistory = [], isLoading: isLoadingHistory } = useQuery<LoanWithBookInfo[]>({
     queryKey: ["/api/prestamos/historial"],
     enabled: !!user
   });
-  
+
+  // Fetch user's profile comments
+  const { data: totalComments = [], isLoading: isLoadingComments } = useQuery({
+      queryKey: [`/api/usuarios/${userId}/comentarios/total`],
+      enabled: !!user
+  });
+
+  console.log("totalComments?.total: " + totalComments?.total);
   // Calculate user stats
   const totalLoans = activeLoans.length + loanHistory.length;
   const registrationDate = user ? new Date(user.created_at) : new Date();
   const membershipDuration = differenceInDays(new Date(), registrationDate);
+  const totalCommentsCount = totalComments?.total || 0;
 
   return (
     <div className="bg-gray-50 py-10">
@@ -61,11 +70,11 @@ export default function ProfilePage() {
                     {user?.nombre.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 <div className="text-center sm:text-left">
                   <h1 className="text-2xl font-bold mb-2">{user?.nombre}</h1>
                   <p className="text-gray-500 mb-4">{user?.email}</p>
-                  
+
                   <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 text-primary mr-1" />
@@ -73,14 +82,14 @@ export default function ProfilePage() {
                         Miembro desde {format(registrationDate, "d 'de' MMMM, yyyy", { locale: es })}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-primary mr-1" />
                       <span className="text-sm text-gray-600">
                         {membershipDuration} días de antigüedad
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center">
                       <BookOpen className="h-4 w-4 text-primary mr-1" />
                       <span className="text-sm text-gray-600">
@@ -89,7 +98,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 sm:mt-0 sm:ml-auto">
                   <Button variant="outline" className="flex items-center">
                     <User className="mr-2 h-4 w-4" />
@@ -99,7 +108,7 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="bg-primary-50 border-primary-200">
               <CardContent className="p-6 text-center">
@@ -110,7 +119,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600">Libros prestados</p>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-6 text-center">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 text-green-500 mb-3">
@@ -120,18 +129,25 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600">Préstamos activos</p>
               </CardContent>
             </Card>
-            
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-6 text-center">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 mb-3">
                   <MessageSquare className="h-6 w-6" />
                 </div>
-                <h2 className="text-2xl font-bold text-blue-600">0</h2>
+                <h2 className="text-2xl font-bold text-blue-600">
+                  {isLoadingComments ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                  ) : (
+                      totalCommentsCount
+                  )}
+                </h2>
                 <p className="text-sm text-gray-600">Comentarios realizados</p>
               </CardContent>
             </Card>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Mi actividad</CardTitle>
@@ -142,20 +158,20 @@ export default function ProfilePage() {
             <CardContent className="p-0">
               <Tabs defaultValue="active" className="w-full">
                 <TabsList className="w-full border-b rounded-none border-b-border flex justify-start p-0 h-auto">
-                  <TabsTrigger 
-                    value="active" 
+                  <TabsTrigger
+                    value="active"
                     className="py-2.5 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
                   >
                     Préstamos activos
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="history" 
+                  <TabsTrigger
+                    value="history"
                     className="py-2.5 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none"
                   >
                     Historial
                   </TabsTrigger>
                 </TabsList>
-                
+
                 {/* Active Loans */}
                 <TabsContent value="active" className="p-6">
                   {isLoadingActive ? (
@@ -178,8 +194,8 @@ export default function ProfilePage() {
                             <div className="flex">
                               <div className="w-1/3 bg-gray-100">
                                 <div className="h-full w-full relative">
-                                  <img 
-                                    src={loan.libro.imagen_url} 
+                                  <img
+                                    src={loan.libro.imagen_url}
                                     alt={loan.libro.titulo}
                                     className="absolute inset-0 w-full h-full object-cover"
                                   />
@@ -188,7 +204,7 @@ export default function ProfilePage() {
                               <div className="w-2/3 p-4">
                                 <h3 className="font-bold mb-2 line-clamp-1">{loan.libro.titulo}</h3>
                                 <p className="text-sm text-gray-500 mb-3">{loan.libro.autor}</p>
-                                
+
                                 <div className="space-y-1 text-sm">
                                   <div className="flex justify-between items-center">
                                     <span className="text-gray-600 flex items-center">
@@ -207,7 +223,7 @@ export default function ProfilePage() {
                                     </span>
                                   </div>
                                 </div>
-                                
+
                                 <div className="mt-4">
                                   <Button size="sm" className="w-full">
                                     Devolver libro
@@ -221,7 +237,7 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </TabsContent>
-                
+
                 {/* Loan History */}
                 <TabsContent value="history" className="p-6">
                   {isLoadingHistory ? (
@@ -240,8 +256,8 @@ export default function ProfilePage() {
                           <CardContent className="p-4">
                             <div className="flex gap-4 items-center">
                               <div className="w-12 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                                <img 
-                                  src={loan.libro.imagen_url} 
+                                <img
+                                  src={loan.libro.imagen_url}
                                   alt={loan.libro.titulo}
                                   className="w-full h-full object-cover"
                                 />
