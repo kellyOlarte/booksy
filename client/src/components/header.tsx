@@ -477,7 +477,7 @@ export const Header: React.FC = () => {
                       asChild
                     >
                       <Link href="/categorias">Categorías</Link>
-                    </Button>9023
+                    </Button>
                   </SheetClose>
                 </div>
 

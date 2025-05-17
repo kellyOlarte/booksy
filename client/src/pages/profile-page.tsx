@@ -51,7 +51,6 @@ export default function ProfilePage() {
       enabled: !!user
   });
 
-  console.log("totalComments?.total: " + totalComments?.total);
   // Calculate user stats
   const totalLoans = activeLoans.length + loanHistory.length;
   const registrationDate = user ? new Date(user.created_at) : new Date();
