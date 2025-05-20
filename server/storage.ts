@@ -265,6 +265,17 @@ export class DatabaseStorage implements IStorage {
       usuario: row.usuario
     }));
   }
+  // Get total user comments for ID
+  async getTotalComentariosByUserId(id: number): Promise<number> {
+    const [result] = await db
+        .select({
+          count: sql<number>`count(*)`
+        })
+        .from(comentarios)
+        .where(eq(comentarios.user_id, id));
+
+    return result.count;
+  }
 
   async getUserComentarioForLibro(userId: number, libroId: number): Promise<Comentario | undefined> {
     const [comment] = await db

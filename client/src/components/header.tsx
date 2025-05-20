@@ -480,16 +480,71 @@ export const Header: React.FC = () => {
                     </Button>
                   </SheetClose>
                 </div>
-                
+
                 <div className="border-t border-gray-200 mt-6 pt-6">
                   {user ? (
-                    <div className="space-y-3">
-                      {/* Contenido para usuarios autenticados en mobile */}
-                    </div>
+                      <div className="space-y-3">
+                        {/* Contenido para usuarios autenticados en mobile */}
+                        <div className="flex items-center space-x-4">
+                          <Link href="/prestamos">
+                            <Button variant="ghost" size="icon" className="relative">
+                              <BookMarked className="h-5 w-5" />
+                              <Badge className="absolute -top-1 -right-1 px-1.5 min-w-[1.25rem] h-5 flex items-center justify-center">
+                                0
+                              </Badge>
+                            </Button>
+                          </Link>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-full">
+                                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center uppercase">
+                                  {user.nombre.charAt(0)}
+                                </div>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href="/perfil" className="cursor-pointer">
+                                  <User className="mr-2 h-4 w-4" />
+                                  <span>Mi Perfil</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href="/prestamos" className="cursor-pointer">
+                                  <BookMarked className="mr-2 h-4 w-4" />
+                                  <span>Mis Préstamos</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              {user.role_id === 2 && (
+                                  <DropdownMenuItem asChild>
+                                    <Link href="/admin" className="cursor-pointer">
+                                      <Settings className="mr-2 h-4 w-4" />
+                                      <span>Administración</span>
+                                    </Link>
+                                  </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Cerrar sesión</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
                   ) : (
-                    <div className="space-y-3">
-                      {/* Contenido para usuarios no autenticados en mobile */}
-                    </div>
+                      <div className="space-y-3">
+                        {/* Contenido para usuarios no autenticados en mobile */}
+                        <div className="inline-flex items-center space-x-3">
+                          <Button variant="outline" asChild>
+                            <Link href="/auth">Iniciar sesión</Link>
+                          </Button>
+                          <Button asChild>
+                            <Link href="/auth?tab=register">Registrarse</Link>
+                          </Button>
+                        </div>
+                      </div>
                   )}
                 </div>
               </div>

@@ -205,6 +205,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Obtener total de comentarios del usuario por ID
+    app.get("/api/usuarios/:id/comentarios/total", isAuthenticated, async (req, res) => {
+        try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+            return res.status(400).json({ message: "ID de libro inválido" });
+        }
+
+        const totalComentarios = await storage.getTotalComentariosByUserId(id);
+        res.json({ total: totalComentarios });
+        } catch (error) {
+        res.status(500).json({ message: "Error al obtener total de comentarios" });
+        }
+    });
+
   // Crear comentario (usuario autenticado)
   app.post("/api/libros/:id/comentarios", isAuthenticated, async (req, res) => {
     try {
