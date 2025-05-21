@@ -197,7 +197,7 @@ export type InsertLog = z.infer<typeof insertLogSchema>;
 export type Log = typeof logs.$inferSelect;
 
 // Auth schemas for frontend
-const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com"];
+const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com", "ecci.edu.co"];
 
 export const loginSchema = z.object({
   email: z.string()

@@ -470,9 +470,9 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(stock)
       .where(eq(stock.book_id, book.id));
-    
-    const totalCopies = stockItem?.total_copies || 50;
-    const availableCopies = stockItem?.available_copies || 50;
+
+    const totalCopies = stockItem?.total_copies;
+    const availableCopies = stockItem?.available_copies;
     
     // Obtener calificaciones y comentarios
     const comentariosResult = await db
