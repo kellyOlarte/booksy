@@ -77,6 +77,7 @@ export default function BookDetailPage() {
       // Refetch book data to update availability
        queryClient.invalidateQueries({ queryKey: [`/api/libros/${bookId}`] });
        queryClient.refetchQueries({ queryKey: [`/api/libros/${bookId}`] });
+       queryClient.invalidateQueries({ queryKey: ["/api/prestamos"] });
     },
     onError: (error: Error) => {
       toast({
