@@ -182,29 +182,49 @@ async function seed() {
     };
 
     console.log('📚 Creando libros...');
-    // Crear libros y su stock
-    for (const categoria of categorias) {
-      const librosDeCategoria = librosPorCategoria[categoria] || [];
-      
-      for (const libroData of librosDeCategoria) {
-        // Crear libro
-        const [libro] = await db.insert(libros).values({
-          titulo: libroData.titulo,
-          autor: libroData.autor,
-          published_year: libroData.published_year,
-          description: libroData.description,
-          categoria: categoria,
-          imagen_url: libroData.imagen_url
-        }).returning();
+   // Crear libros y su stock
+for (const categoria of categorias) {
+  const librosDeCategoria = librosPorCategoria[categoria] || [];
+  
+  for (const libroData of librosDeCategoria) {
+    // Verificar si ya existe el libro
+    const libroExistente = await db
+      .select()
+      .from(libros)
+      .where(eq(libros.titulo, libroData.titulo));
 
-        // Crear stock para el libro
-        await db.insert(stock).values({
-          book_id: libro.id,
-          total_copies: 50,
-          available_copies: Math.floor(Math.random() * 50) + 1 // Entre 1 y 50 copias disponibles
-        });
-      }
+    let libroId: number;
+
+    if (libroExistente.length === 0) {
+      // Crear libro
+      const [libro] = await db.insert(libros).values({
+        titulo: libroData.titulo,
+        autor: libroData.autor,
+        published_year: libroData.published_year,
+        description: libroData.description,
+        categoria: categoria,
+        imagen_url: libroData.imagen_url
+      }).returning();
+      libroId = libro.id;
+    } else {
+      libroId = libroExistente[0].id;
     }
+
+    // Verificar si ya hay stock creado para ese libro
+    const stockExistente = await db
+      .select()
+      .from(stock)
+      .where(eq(stock.book_id, libroId));
+
+    if (stockExistente.length === 0) {
+      await db.insert(stock).values({
+        book_id: libroId,
+        total_copies: 50,
+        available_copies: Math.floor(Math.random() * 50) + 1
+      });
+    }
+  }
+}
 
     console.log('✅ Sembrado de datos completado con éxito!');
   } catch (error) {

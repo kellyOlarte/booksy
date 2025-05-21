@@ -75,7 +75,8 @@ export default function BookDetailPage() {
         description: `Has solicitado "${book?.titulo}" por ${loanDuration} días. Ya está disponible para recogerlo en la biblioteca 📖`,
       });
       // Refetch book data to update availability
-      queryClient.invalidateQueries({ queryKey: [`/api/libros/${bookId}`] });
+       queryClient.invalidateQueries({ queryKey: [`/api/libros/${bookId}`] });
+       queryClient.refetchQueries({ queryKey: [`/api/libros/${bookId}`] });
     },
     onError: (error: Error) => {
       toast({
