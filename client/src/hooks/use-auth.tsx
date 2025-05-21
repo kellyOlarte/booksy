@@ -1,4 +1,5 @@
 import { createContext, ReactNode, useContext } from "react";
+import { useForm } from "react-hook-form";
 import {
   useQuery,
   useMutation,
@@ -55,19 +56,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+const { reset } = useForm<RegisterData>();
   const registerMutation = useMutation({
-    mutationFn: async (userData: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", userData);
-      return await res.json();
-    },
-    onSuccess: (user: Usuario) => {
-      queryClient.setQueryData(["/api/user"], user);
-      navigate("/");
-      toast({
-        title: "Registro exitoso",
-        description: `Bienvenido/a, ${user.nombre}`,
-      });
-    },
+  mutationFn: async (userData: RegisterData) => {
+    const res = await apiRequest("POST", "/api/register", userData);
+    return await res.json();
+  },
+  onSuccess: (user: Usuario) => {
+    reset(); // limpia campos
+    
+    toast({
+      title: "Registro exitoso",
+      description: `Cuenta creada correctamente. Por favor inicia sesión.`,
+    });
+    navigate("/auth"); // Redirigir a la página de inicio de sesión
+  },
     onError: (error: Error) => {
       toast({
         title: "Error de registro",

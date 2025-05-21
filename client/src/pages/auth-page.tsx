@@ -51,7 +51,7 @@ const registerSchema = z.object({
     .email({ message: "Email inválido"})
     .refine((email) => {
       const domain = email.split("@")[1];
-      const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com"];
+      const allowedDomains = ["gmail.com", "hotmail.com", "outlook.com", "ecci.edu.co"];
       return allowedDomains.includes(domain);
     }, {
       message: "Dominio de correo no permitido. Usa un dominio válido como gmail.com",
@@ -77,20 +77,16 @@ export default function AuthPage() {
   const [location, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [registerSuccess, setRegisterSuccess] = useState<string | null>(null); // <-- AGREGA ESTA LÍNEA
 
   // Parse tab from URL 
   useEffect(() => {
+    // Solo redirige si está en la pestaña de login y ya está logueado
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab === "register") {
-      setActiveTab("register");
-    }
-  }, []);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate("/");
+    if (user && tab === "login") {
+      navigate("/auth");
     }
   }, [user, navigate]);
 
@@ -129,62 +125,70 @@ export default function AuthPage() {
     const formattedBirthDate = data.birthDate.toISOString().split('T')[0];
 
 
-    registerMutation.mutate({
-      nombre: data.nombre,
-      email: data.email.toLowerCase(),
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-      birthDate: data.birthDate
-    }, {
-      onError: (error: any) => {
-        let mensajes: string[] = [];
-        let rawMessage = error?.response?.data?.message || error?.message || error || "Error desconocido";
+registerMutation.mutate(
+  {
+    nombre: data.nombre,
+    email: data.email,
+    password: data.password,
+    confirmPassword: data.confirmPassword,
+    birthDate: data.birthDate,
+  },
+  {
+    onSuccess: () => {
+      registerForm.reset(); // Limpia el formulario
+      setRegisterSuccess("¡Registro exitoso! Ahora inicia sesión.");
+      setActiveTab("login");
+    },
+    onError: (error: any) => {
+      let mensajes: string[] = [];
+      let rawMessage = error?.response?.data?.message || error?.message || error || "Error desconocido";
 
-        // Elimina el prefijo "400: " si existe
-        if (typeof rawMessage === "string" && rawMessage.startsWith("400: ")) {
-          rawMessage = rawMessage.slice(5).trim();
-        }
-
-        let parsed = rawMessage;
-        // Solo intenta parsear si es string y parece un JSON
-        if (typeof rawMessage === "string" && (rawMessage.startsWith("{") || rawMessage.startsWith("["))) {
-          try {
-            parsed = JSON.parse(rawMessage);
-          } catch {
-            parsed = rawMessage;
-          }
-        }
-
-        // Extrae mensajes según el tipo de respuesta
-        if (Array.isArray(parsed)) {
-          // Solo toma los mensajes de cada objeto, ignora el resto
-          mensajes = parsed.map((e) => typeof e === "object" && e.message ? e.message : JSON.stringify(e));
-        } else if (parsed && typeof parsed === "object") {
-          if (parsed.message && typeof parsed.message === "string") {
-            mensajes = [parsed.message];
-          } else {
-            mensajes = Object.values(parsed)
-              .map((e: any) => (e && e.message ? e.message : JSON.stringify(e)));
-          }
-        } else if (typeof parsed === "string") {
-          mensajes = [parsed];
-        } else {
-          mensajes = ["Error desconocido"];
-        }
-
-        // Muestra solo los mensajes limpios, uno por línea
-        registerForm.setError("root", { message: mensajes.join("\n") });
+      if (typeof rawMessage === "string" && rawMessage.startsWith("400: ")) {
+        rawMessage = rawMessage.slice(5).trim();
       }
-    }
-    );
-  };
 
+      let parsed = rawMessage;
+
+      if (typeof rawMessage === "string" && (rawMessage.startsWith("{") || rawMessage.startsWith("["))) {
+        try {
+          parsed = JSON.parse(rawMessage);
+        } catch {
+          parsed = rawMessage;
+        }
+      }
+
+      if (Array.isArray(parsed)) {
+        mensajes = parsed.map((e) => typeof e === "object" && e.message ? e.message : JSON.stringify(e));
+      } else if (parsed && typeof parsed === "object") {
+        if (parsed.message && typeof parsed.message === "string") {
+          mensajes = [parsed.message];
+        } else {
+          mensajes = Object.values(parsed).map((e: any) =>
+            e && e.message ? e.message : JSON.stringify(e)
+          );
+        }
+      } else if (typeof parsed === "string") {
+        mensajes = [parsed];
+      } else {
+        mensajes = ["Error desconocido"];
+      }
+
+      registerForm.setError("root", { message: mensajes.join("\n") });
+    }
+  }
+);
+  }
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
         <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
           {/* Left Column - Auth Forms */}
           <div className="w-full lg:w-1/2">
+          {registerSuccess && (
+              <div className="mb-4 text-green-600 text-center font-semibold">
+                {registerSuccess}
+              </div>
+            )}
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
@@ -533,3 +537,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
